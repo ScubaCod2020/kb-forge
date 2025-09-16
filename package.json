@@ -5,7 +5,8 @@
     "apps/web",
     "tools/ingest",
     "tools/tldr",
-    "tools/lint"
+    "tools/lint",
+    "tools/rag"
   ],
   "scripts": {
     "start": "npm -w apps/web start",
@@ -14,6 +15,8 @@
     "ingest:refs": "npm -w tools/ingest run ingest:refs",
     "tldr:regen": "npm -w tools/tldr run regen",
     "lint:kb": "npm -w tools/lint run lint",
-    "ci:build": "npm -w apps/web run build"
+    "ci:build": "npm -w apps/web run build",
+    "rag:index": "npm -w tools/rag run index",
+    "rag:serve": "npm -w tools/rag run serve"
   }
 }
