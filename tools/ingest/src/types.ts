@@ -1,18 +1,10 @@
 export type ZendeskArticle = {
-  id: number;
-  title?: string;
-  body?: string;         // HTML
-  html_url?: string;
-  created_at?: string;
-  updated_at?: string;
-  draft?: boolean;
-  label_names?: string[];
-  locale?: string;
-  category?: string;
-  section?: string;
-  author_id?: number | string;
-  audience?: string;
-  product?: string;
+  id: number; title?: string; body?: string; html_url?: string;
+  created_at?: string; updated_at?: string; draft?: boolean;
+  label_names?: string[]; locale?: string;
+  category?: string; section?: string; // some exports include names
+  category_id?: number; section_id?: number; // others include IDs
+  author_id?: number | string; audience?: string; product?: string;
 };
 
 export type FrontMatter = {

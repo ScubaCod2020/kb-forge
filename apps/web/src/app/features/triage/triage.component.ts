@@ -2,14 +2,17 @@ import { Component, computed, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common'; 
 import { FormsModule } from '@angular/forms';
 import { MarkdownModule } from 'ngx-markdown'; 
+import { DebugToolbarComponent } from '../../core/debug-toolbar.component';
+import { environment } from '../../../environments/environment';
 import { KbService } from '../../services/kb.service';
 import { ArticleRow } from '../../models/article';
 
 @Component({
   standalone:true, 
   selector:'app-triage', 
-  imports:[CommonModule, FormsModule, MarkdownModule],
+  imports:[CommonModule, FormsModule, MarkdownModule, DebugToolbarComponent],
   template:`
+  <app-debug-toolbar *ngIf="debugOn"></app-debug-toolbar>
   <div class="layout">
     <aside>
       <input placeholder="Search title…" [(ngModel)]="q"/>
@@ -21,7 +24,7 @@ import { ArticleRow } from '../../models/article';
       <ul class="list">
         <li *ngFor="let r of filtered() | slice:0:500" (click)="select(r)" [class.sel]="sel()?.zendesk_id===r.zendesk_id">
           <div class="t">{{r.title}}</div>
-          <div class="m">{{r.section}} · {{r.updated_at?.slice(0,10)}} · {{r.status}}</div>
+          <div class="m">{{r.section}} · {{r.updated_at?.slice(0,10) || 'No date'}} · {{r.status}}</div>
         </li>
       </ul>
     </aside>
@@ -52,6 +55,7 @@ import { ArticleRow } from '../../models/article';
   `]
 })
 export default class TriageComponent{
+  debugOn = environment.DEBUG_TOOL_ENABLED;
   rows=signal<ArticleRow[]>([]); 
   q=''; 
   label=''; 

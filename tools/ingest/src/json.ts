@@ -4,33 +4,38 @@ import TurndownService from 'turndown';
 import yaml from 'js-yaml';
 import { format } from 'fast-csv';
 import type { FrontMatter, ZendeskArticle } from './types.js';
+import { loadLookups } from './lookups.js';
 
-// Assumes npm -w tools/ingest runs with cwd=tools/ingest
-const ROOT = path.resolve(process.cwd(), '..', '..');           // C:\Dev\kb-forge
-const IMPORTS = path.join(ROOT, 'imports');                      // C:\Dev\kb-forge\imports
-const OUT_DIR = path.join(ROOT, 'data', 'kb_md');                // C:\Dev\kb-forge\data\kb_md
-const CSV_PATH = path.join(ROOT, 'data', 'articles.csv');       // C:\Dev\kb-forge\data\articles.csv
+const ROOT = path.resolve(process.cwd(), '..', '..');
+const IMPORTS = path.join(ROOT, 'imports');
+const OUT_DIR = path.join(ROOT, 'data', 'kb_md');
+const CSV_PATH = path.join(ROOT, 'data', 'articles.csv');
+const LOOKUPS = loadLookups(ROOT);
 
 const turndown = new TurndownService({ headingStyle: 'atx' });
 const ensure = (p:string) => fs.mkdirSync(p, { recursive: true });
 const slug = (s:string) => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80);
-const fm = (m:FrontMatter) => '---\n' + yaml.dump(m, { lineWidth: 120 }).trim() + '\n---\n';
+const fm = (m:FrontMatter & Record<string,unknown>) => '---\n' + yaml.dump(m, { lineWidth: 120 }).trim() + '\n---\n';
 
 function convert(a: ZendeskArticle) {
-  const meta: FrontMatter = {
+  const meta: (FrontMatter & Record<string,unknown>) = {
     zendesk_id: a.id,
     title: (a.title || ('untitled-' + a.id)).replace(/\n/g,' ').trim(),
-    category: a.category || 'uncategorized',
-    section: a.section || 'misc',
+    category: a.category || LOOKUPS.categories?.[String(a.category_id ?? '')] || 'uncategorized',
+    section:  a.section  || LOOKUPS.sections?.[String(a.section_id  ?? '')] || 'misc',
     labels: a.label_names || [],
     audience: a.audience || 'internal',
     product: a.product || '',
     status: a.draft ? 'draft' : 'active',
-    owner: a.author_id ?? '',
+    owner: LOOKUPS.authors?.[String(a.author_id ?? '')] || (a.author_id ?? ''),
     created_at: a.created_at || '',
     updated_at: a.updated_at || '',
     source_url: a.html_url || '',
-    locale: a.locale || 'en-us'
+    locale: a.locale || 'en-us',
+    // passthrough IDs for round-trip
+    category_id: a.category_id ?? '',
+    section_id:  a.section_id  ?? '',
+    author_id:   a.author_id   ?? ''
   };
 
   const mdBody = turndown.turndown(a.body || '').replace(/\r\n/g,'\n').trim();
@@ -43,9 +48,9 @@ function convert(a: ZendeskArticle) {
     ''
   ].join('\n');
 
-  const folder = path.join(OUT_DIR, meta.category, meta.section);
+  const folder = path.join(OUT_DIR, String(meta.category), String(meta.section));
   ensure(folder);
-  const fname = `${slug(meta.title)}--${meta.zendesk_id}.md`;
+  const fname = `${slug(String(meta.title))}--${meta.zendesk_id}.md`;
   const fpath = path.join(folder, fname);
   fs.writeFileSync(fpath, fm(meta) + tldr + mdBody + '\n', 'utf8');
 
@@ -55,10 +60,7 @@ function convert(a: ZendeskArticle) {
 function readAllJson(): ZendeskArticle[] {
   ensure(IMPORTS);
   const files = fs.readdirSync(IMPORTS).filter(f => f.endsWith('.json'));
-  if (files.length === 0) {
-    console.log('No JSON files in /imports. Place your Zendesk export(s) there.');
-    return [];
-  }
+  if (files.length === 0) { console.log('No JSON files in /imports.'); return []; }
   let out: ZendeskArticle[] = [];
   for (const f of files) {
     const j = JSON.parse(fs.readFileSync(path.join(IMPORTS, f), 'utf8'));
@@ -79,7 +81,7 @@ function readAllJson(): ZendeskArticle[] {
       title: meta.title,
       category: meta.category,
       section: meta.section,
-      labels: meta.labels.join('|'),
+      labels: (meta.labels as string[]).join('|'),
       updated_at: meta.updated_at,
       status: meta.status
     });
