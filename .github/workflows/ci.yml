@@ -1,0 +1,19 @@
+name: CI
+on:
+  push: { branches: [ main, master ] }
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+      - run: npm -w tools/ingest i
+      - run: npm -w tools/tldr i
+      - run: npm -w tools/lint i
+      - run: npm -w apps/web ci || npm -w apps/web i
+      - run: npm -w apps/web run build
+      - uses: actions/upload-artifact@v4
+        with: { name: web-dist, path: apps/web/dist }
