@@ -1,0 +1,14 @@
+{
+  "name": "kb-forge",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "tools/ingest"
+  ],
+  "scripts": {
+    "start": "npm -w apps/web start",
+    "build": "npm -w apps/web run build",
+    "ingest:json": "npm -w tools/ingest run ingest:json",
+    "ingest:refs": "npm -w tools/ingest run ingest:refs"
+  }
+}
