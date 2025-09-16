@@ -1,0 +1,27 @@
+{
+  "name": "ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "zd-to-md": "./dist/json.js",
+    "refs-to-md": "./dist/refs.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "ingest:json": "tsx src/json.ts",
+    "ingest:refs": "tsx src/refs.ts"
+  },
+  "dependencies": {
+    "turndown": "^7.2.0",
+    "js-yaml": "^4.1.0",
+    "fast-csv": "^5.0.1",
+    "pdf-parse": "^1.1.1",
+    "mammoth": "^1.8.0",
+    "globby": "^14.0.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}
