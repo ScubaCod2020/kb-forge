@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { globby } from 'globby';
 
@@ -17,10 +16,16 @@ async function docxToMd(file:string){
   return res.value.trim();
 }
 async function pdfToMd(file:string){
-  const buf = fs.readFileSync(file);
-  const data = await pdf(buf);
-  const t = (data.text || '').replace(/\r\n/g,'\n').trim();
-  return t ? '\n\n````\n' + t + '\n````\n' : '';
+  try {
+    const pdf = await import('pdf-parse');
+    const buf = fs.readFileSync(file);
+    const data = await pdf.default(buf);
+    const t = (data.text || '').replace(/\r\n/g,'\n').trim();
+    return t ? '\n\n````\n' + t + '\n````\n' : '';
+  } catch (error) {
+    console.warn(`Warning: Could not process PDF ${file}:`, error);
+    return '\n\n*PDF content could not be extracted*\n\n';
+  }
 }
 
 (async function run(){
