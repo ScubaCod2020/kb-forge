@@ -63,8 +63,18 @@ function readAllJson(): ZendeskArticle[] {
   if (files.length === 0) { console.log('No JSON files in /imports.'); return []; }
   let out: ZendeskArticle[] = [];
   for (const f of files) {
-    const j = JSON.parse(fs.readFileSync(path.join(IMPORTS, f), 'utf8'));
-    out.push(...(j.articles ?? j));
+    try {
+      const content = fs.readFileSync(path.join(IMPORTS, f), 'utf8');
+      console.log(`Parsing JSON file: ${f} (${content.length} chars)`);
+      const j = JSON.parse(content);
+      out.push(...(j.articles ?? j));
+    } catch (err) {
+      console.error(`❌ Failed to parse JSON file: ${f}`);
+      console.error(`Error: ${err}`);
+      const content = fs.readFileSync(path.join(IMPORTS, f), 'utf8');
+      console.error(`First 200 chars: ${content.slice(0, 200)}`);
+      throw err; // Re-throw to stop execution
+    }
   }
   return out;
 }

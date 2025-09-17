@@ -7,9 +7,25 @@ import { stringify } from 'csv-stringify/sync';
 const ROOT = path.resolve(process.cwd(), '..', '..');
 const KB_DIR = path.join(ROOT, 'data', 'kb_md');
 const CSV_PATH = path.join(ROOT, 'data', 'articles.csv');
+const OWNERS_PATH = path.join(ROOT, 'imports', 'lookups', 'owners.json');
 
 type Row = Record<string,string>;
 const now = new Date();
+
+// Load valid owners lookup
+function loadOwners(): Set<string> {
+  try {
+    if (fs.existsSync(OWNERS_PATH)) {
+      const owners = JSON.parse(fs.readFileSync(OWNERS_PATH, 'utf8'));
+      return new Set(Object.keys(owners));
+    }
+  } catch (e) {
+    console.warn('Could not load owners lookup:', e);
+  }
+  return new Set();
+}
+
+const validOwners = loadOwners();
 
 function scoreArticle(md: string, meta: any){
   const flags: string[] = [];
@@ -40,6 +56,12 @@ function scoreArticle(md: string, meta: any){
   const imgRefs = [...md.matchAll(/!\[[^\]]*]\(([^)]+)\)/g)].map(m=>m[1]);
   if (imgRefs.length && !imgRefs.every(x => x.startsWith('http') || fs.existsSync(path.join(KB_DIR, x)))) {
     flags.push('image_missing'); score -= 6;
+  }
+
+  // Owner validation
+  const owner = meta?.owner;
+  if (!owner || !validOwners.has(String(owner))) {
+    flags.push('owner_not_team'); score -= 5;
   }
 
   // Floor/ceiling
@@ -85,8 +107,21 @@ async function main(){
     if (!row) row = { path: rel, zendesk_id: String(meta.zendesk_id||''), title: String(meta.title||'') } as Row;
     row.quality_score = String(score);
     row.lint_flags = flags;
+    
+    // Cadence inference if missing
+    if (!row.cadence || !meta.cadence) {
+      // Ensure labels is a string before splitting
+      const labelsStr = String(meta.labels || row.labels || '');
+      const labelSet = new Set(labelsStr.split('|').map((s:string)=>s.toLowerCase().trim()).filter(Boolean));
+      const cadence = labelSet.has('tax') || labelSet.has('irs') || labelSet.has('season') ? 'tax_year' :
+                      labelSet.has('release') || labelSet.has('version') || labelSet.has('windows') ? 'event_driven' :
+                      labelSet.has('urgent') || labelSet.has('outage') ? 'time_sensitive' :
+                      'evergreen';
+      row.cadence = cadence;
+    }
+    
     // Preserve existing keys
-    byPath.set(rel, { ...row, category: row.category ?? String(meta.category||''), section: row.section ?? String(meta.section||'') });
+    byPath.set(rel, { ...row, category: row.category ?? String(meta.category||''), section: row.section ?? String(meta.section||''), owner: row.owner ?? String(meta.owner||'') });
   }
 
   // Write back in stable order

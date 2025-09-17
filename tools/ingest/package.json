@@ -10,7 +10,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "ingest:json": "tsx src/json.ts",
-    "ingest:refs": "tsx src/refs.ts"
+    "ingest:refs": "tsx src/refs.ts",
+    "ingest:csv": "tsx src/csv/ingest-enriched-csv.ts",
+    "imports:clearjson": "node -e \"const fs=require('fs'),p='imports';if(!fs.existsSync(p)){process.exit(0)};for(const f of fs.readdirSync(p)){if(f.toLowerCase().endsWith('.json')){fs.unlinkSync(p+'/'+f)}};console.log('Cleared JSON files in /imports')\""
   },
   "dependencies": {
     "turndown": "^7.2.0",
